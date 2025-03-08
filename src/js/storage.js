@@ -9,3 +9,7 @@ export function getUserData(key) {
   }
   return null;
 }
+
+export function removeData(key) {
+  localStorage.removeItem(key);
+}
