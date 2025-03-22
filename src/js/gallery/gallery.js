@@ -33,6 +33,7 @@ const page = pagination.getCurrentPage();
 
 const gallery = document.querySelector('.gallery');
 const searchForm = document.querySelector('.js-search-form');
+const loader = document.querySelector('.loader');
 
 searchForm.addEventListener('submit', async event => {
   event.preventDefault();
@@ -47,6 +48,11 @@ searchForm.addEventListener('submit', async event => {
   }
 
   api.query = inputValue;
+
+  pagination.off('afterMove', getPopularByPages);
+  pagination.off('afterMove', getByQveryByPages);
+
+  showElement(loader);
   try {
     const data = await api.getPhotosByQuery(page);
 
@@ -56,15 +62,27 @@ searchForm.addEventListener('submit', async event => {
       });
       return;
     }
+    iziToast.success({
+      message: `We found ${data.total} images`,
+    });
 
+    if (data.total <= 12) {
+      hidElement(container);
+    } else {
+      showElement(container);
+    }
     gallery.innerHTML = createGalleryCard(data.results);
     pagination.reset(data.total);
+
+    pagination.on('afterMove', getByQveryByPages);
   } catch (error) {
     iziToast.error({
       message: 'Something went wrong.',
     });
 
     console.log(error);
+  } finally {
+    hidElement(loader);
   }
 });
 
@@ -74,9 +92,24 @@ api.getPopularPhotos(page).then(data => {
   pagination.reset(data.total);
 });
 
-pagination.on('afterMove', event => {
+pagination.on('afterMove', getPopularByPages);
+
+function getPopularByPages(event) {
   const currentPage = event.page;
   api
     .getPopularPhotos(currentPage)
     .then(data => (gallery.innerHTML = createGalleryCard(data.results)));
-});
+}
+function getByQveryByPages(event) {
+  const currentPage = event.page;
+  api
+    .getPhotosByQuery(currentPage)
+    .then(data => (gallery.innerHTML = createGalleryCard(data.results)));
+}
+
+function showElement(element) {
+  element.classList.remove('hidden');
+}
+function hidElement(element) {
+  element.classList.add('hidden');
+}
